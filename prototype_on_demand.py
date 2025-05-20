@@ -47,19 +47,10 @@ def edit_tests(initial_json: str) -> dict:
     return data
 
 
-async def main():
-    parser = argparse.ArgumentParser(description="Prototype tasks on demand")
-    parser.add_argument("brief", nargs="?", help="Short problem description")
-    args = parser.parse_args()
-
-    brief = args.brief or input("Enter task brief: ")
-    logger.info("Brief provided: %s", brief)
-
-    test_agent = TestGeneratorAgent()
-
-    suite = None
+async def generate_and_confirm_tests(agent: TestGeneratorAgent, brief: str):
+    """Generate tests and allow the user to approve, regenerate, edit, or quit."""
     while True:
-        suite = await test_agent.generate_tests(brief)
+        suite = await agent.generate_tests(brief)
         print("\n--- Test Explanation ---")
         print(suite.explanation)
         print("\n--- Proposed Tests (JSON) ---")
@@ -67,7 +58,7 @@ async def main():
         choice = input("[A]ccept / [R]egenerate / [E]dit / [Q]uit > ").strip().lower()
         logger.info("User choice: %s", choice)
         if choice.startswith("a"):
-            break
+            return suite
         if choice.startswith("r"):
             continue
         if choice.startswith("e"):
@@ -75,13 +66,30 @@ async def main():
             if edited:
                 suite.explanation = edited.get("explanation", suite.explanation)
                 suite.cases = edited.get("cases", suite.cases)
-            break
+            return suite
         if choice.startswith("q"):
             logger.info("User quit before running evolution")
-            return
+            return None
 
-    func_name = input("Function name to evolve [solve]: ").strip() or "solve"
-    imports_text = input("Allowed standard library imports (comma separated) [none]: ")
+
+async def main():
+    parser = argparse.ArgumentParser(description="Prototype tasks on demand")
+    parser.add_argument("brief", nargs="?", help="Short problem description")
+    parser.add_argument("-f", "--function-name", dest="func_name", help="Name of the function to evolve")
+    parser.add_argument("-i", "--imports", dest="imports", help="Comma separated list of allowed imports")
+    args = parser.parse_args()
+
+    brief = args.brief or input("Enter task brief: ")
+    logger.info("Brief provided: %s", brief)
+
+    test_agent = TestGeneratorAgent()
+
+    suite = await generate_and_confirm_tests(test_agent, brief)
+    if not suite:
+        return
+
+    func_name = args.func_name or input("Function name to evolve [solve]: ").strip() or "solve"
+    imports_text = args.imports or input("Allowed standard library imports (comma separated) [none]: ")
     allowed_imports = [imp.strip() for imp in imports_text.split(",") if imp.strip()] if imports_text else []
 
     task_id = f"prototype_{int(time.time())}"
