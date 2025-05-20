@@ -37,6 +37,7 @@ The project is structured into several core components, primarily agents and con
         *   `sqlite_agent.py` (`SQLiteDatabaseAgent`): A persistent database using SQLite, implementing the MAP-Elites archive.
     *   `selection_controller/agent.py` (`SelectionControllerAgent`): Implements strategies for selecting parent programs for reproduction and (previously) survivor programs. Now primarily focused on parent selection from the MAP-Elites archive.
     *   `monitoring_agent/agent.py` (`MonitoringAgent`): Logs progress, archive status, and other metrics. (Future: visualization).
+    *   `test_generator/agent.py` (`TestGeneratorAgent`): Creates unit tests from a natural-language brief and coordinates the approval workflow before evolution begins.
     *   `rl_finetuner/agent.py` (`RLFineTunerAgent`): Placeholder for future reinforcement learning-based optimization of prompts or LLM parameters.
 *   **Logging**:
     *   `alpha_evolve.log`: Default log file where detailed operational logs are stored.
@@ -267,7 +268,16 @@ This loop runs for `settings.GENERATIONS`:
 
 This cycle repeats for all offspring and across all generations.
 
-## 6. Configuration (`config/settings.py`) Highlights
+## 6. Prototype-on-Demand Workflow
+
+An optional flow allows users to start from a plain-language description instead of prewritten tests:
+
+1. **Brief Submission**: The user supplies a short natural-language brief describing the desired functionality.
+2. **Test Generation**: `TestGeneratorAgent` converts the brief into candidate unit tests.
+3. **Approval Loop**: The user reviews these tests, accepting or editing them until they accurately capture the goal.
+4. **Automated Evolution**: Once approved, the standard evolutionary cycle runs using the new tests until all of them pass.
+
+## 7. Configuration (`config/settings.py`) Highlights
 
 *   `GEMINI_API_KEY`: Essential for LLM communication.
 *   `GEMINI_PRO_MODEL_NAME`, `GEMINI_FLASH_MODEL_NAME`: Specify which LLM models to use.
@@ -280,6 +290,6 @@ This cycle repeats for all offspring and across all generations.
 *   `DATABASE_TYPE`: "sqlite" or "in_memory".
 *   `DATABASE_PATH`: Path for the SQLite database file.
 
-## 7. Conclusion
+## 8. Conclusion
 
 OpenAlpha_Evolve provides a sophisticated, agent-based framework for exploring LLM-driven evolutionary algorithm discovery. Its modular design, coupled with features like MAP-Elites for diversity and robust evaluation, makes it a powerful tool for generating and refining algorithmic solutions. The detailed workflow described above illustrates the intricate interactions between its components to achieve this autonomous process. 
