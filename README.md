@@ -159,6 +159,16 @@ OpenAlpha_Evolve employs a modular, agent-based architecture to orchestrate an e
     ```
     Gradio will display a local URL (e.g., http://127.0.0.1:7860) and a public share link if enabled. Open this in your browser to define custom tasks and run the evolution process interactively.
 
+## ✅ Running Tests
+
+After installing dependencies you can run the automated test suite with:
+
+```bash
+pytest
+```
+
+This will execute all tests under the `tests/` directory.
+
 ---
 
 ## 💡 Defining Your Own Algorithmic Quests!
