@@ -25,10 +25,11 @@ class TestGeneratorAgent(TestGeneratorInterface, BaseAgent):
         logger.info("Generating tests from brief")
 
         prompt = (
-            "You are a Python expert tasked with writing unit tests. "
-            "Given the problem description below, return a JSON object with two keys: "
-            "'explanation' summarizing your approach in English and 'cases' which is "
-            "a list of test case objects. Each test case must have 'input' and 'output' fields. "
+            "You are a Python expert tasked with writing pytest unit tests. "
+            "Given the problem description below, return a JSON object with the keys: "
+            "'explanation' summarizing your approach in English, 'cases' which is a list of "
+            "structured test case dictionaries, and 'tests_code' containing a complete pytest "
+            "test file. Each test case must have 'input' and 'output' fields. "
             "Only return valid JSON without markdown fences.\n\n"
             f"Problem Description:\n{brief}\n"
         )

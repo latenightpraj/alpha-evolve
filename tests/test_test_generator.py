@@ -12,7 +12,8 @@ class DummyResponse:
 @pytest.mark.asyncio
 async def test_generate_tests_returns_llm_output():
     agent = TestGeneratorAgent()
-    dummy = DummyResponse("EXPECTED TESTS")
+    dummy_json = '{"explanation": "ok", "cases": [], "tests_code": "assert True"}'
+    dummy = DummyResponse(dummy_json)
     with patch("test_generator.agent.acompletion", new=AsyncMock(return_value=dummy)):
-        result = await agent.generate_tests("some code")
-    assert result == "EXPECTED TESTS"
+        suite = await agent.generate_tests("some code")
+    assert suite.tests_code.strip() == "assert True"
