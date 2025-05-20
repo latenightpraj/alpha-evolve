@@ -255,18 +255,30 @@ async def generate_tests(brief):
     return code, suite.explanation, suite
 
 
-async def run_task_from_suite(task_id, brief, function_name, test_code, explanation, allowed_imports_text=""):
+async def run_task_from_suite(
+    task_id,
+    brief,
+    function_name,
+    test_code,
+    explanation,
+    population_size,
+    generations,
+    num_islands,
+    migration_frequency,
+    migration_rate,
+    allowed_imports_text="",
+):
     """Run evolution for a task defined by a pytest suite."""
     progress = gr.Progress()
     string_handler.clear()
 
     allowed_imports = [imp.strip() for imp in allowed_imports_text.split(",") if imp.strip()]
 
-    settings.POPULATION_SIZE = int(settings.POPULATION_SIZE)
-    settings.GENERATIONS = int(settings.GENERATIONS)
-    settings.NUM_ISLANDS = int(settings.NUM_ISLANDS)
-    settings.MIGRATION_FREQUENCY = int(settings.MIGRATION_FREQUENCY)
-    settings.MIGRATION_RATE = float(settings.MIGRATION_RATE)
+    settings.POPULATION_SIZE = int(population_size)
+    settings.GENERATIONS = int(generations)
+    settings.NUM_ISLANDS = int(num_islands)
+    settings.MIGRATION_FREQUENCY = int(migration_frequency)
+    settings.MIGRATION_RATE = float(migration_rate)
 
     suite = TestSuite(files={"test_generated.py": test_code}, explanation=explanation)
 
@@ -440,10 +452,19 @@ with gr.Blocks(title="OpenAlpha_Evolve") as demo:
 
         with gr.Tab("Prototype on Demand"):
             brief = gr.Textbox(label="Task Brief", lines=3)
+            function_name_proto = gr.Textbox(label="Function Name to Evolve", value="solve")
+            allowed_imports_proto = gr.Textbox(label="Allowed Imports (comma-separated)", value="")
             generate_btn = gr.Button("Generate Tests")
             explanation_box = gr.Textbox(label="Test Explanation", lines=4, interactive=True)
             tests_code_box = gr.Code(label="Pytest Suite", language="python", lines=10, interactive=True)
             suite_state = gr.State()
+            with gr.Row():
+                population_size_proto = gr.Slider(label="Population Size", minimum=2, maximum=10, value=3, step=1)
+                generations_proto = gr.Slider(label="Generations", minimum=1, maximum=5, value=2, step=1)
+            with gr.Row():
+                num_islands_proto = gr.Slider(label="Number of Islands", minimum=1, maximum=5, value=3, step=1)
+                migration_frequency_proto = gr.Slider(label="Migration Frequency (generations)", minimum=1, maximum=5, value=2, step=1)
+                migration_rate_proto = gr.Slider(label="Migration Rate", minimum=0.1, maximum=0.5, value=0.2, step=0.1)
             with gr.Row():
                 approve_btn = gr.Button("Approve", variant="primary")
                 regenerate_btn = gr.Button("Regenerate")
@@ -459,16 +480,44 @@ with gr.Blocks(title="OpenAlpha_Evolve") as demo:
 
             edit_btn.click(enable_edit, outputs=[tests_code_box, explanation_box])
 
-            async def approve_wrapper(br, expl, code, suite):
+            async def approve_wrapper(br, func_name, imports, pop, gens, islands, mig_freq, mig_rate, expl, code, suite):
                 logger.info("User decision: approve")
                 if suite:
                     suite.explanation = expl
                     suite.tests_code = code
                 else:
                     suite = TestSuite(files={"test_generated.py": code}, explanation=expl)
-                return await run_task_from_suite(f"prototype_{int(time.time())}", br, "solve", code, expl)
+                return await run_task_from_suite(
+                    f"prototype_{int(time.time())}",
+                    br,
+                    func_name,
+                    code,
+                    expl,
+                    pop,
+                    gens,
+                    islands,
+                    mig_freq,
+                    mig_rate,
+                    imports,
+                )
 
-            approve_btn.click(approve_wrapper, inputs=[brief, explanation_box, tests_code_box, suite_state], outputs=proto_results)
+            approve_btn.click(
+                approve_wrapper,
+                inputs=[
+                    brief,
+                    function_name_proto,
+                    allowed_imports_proto,
+                    population_size_proto,
+                    generations_proto,
+                    num_islands_proto,
+                    migration_frequency_proto,
+                    migration_rate_proto,
+                    explanation_box,
+                    tests_code_box,
+                    suite_state,
+                ],
+                outputs=proto_results,
+            )
 
             def cancel():
                 logger.info("User cancelled prototype")
