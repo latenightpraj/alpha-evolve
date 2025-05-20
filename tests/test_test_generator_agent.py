@@ -1,7 +1,8 @@
 import unittest
 from types import SimpleNamespace
 
-from test_generator.agent import TestGeneratorAgent, TestSuite
+from test_generator.agent import TestGeneratorAgent
+from core.interfaces import TestSuite
 
 class DummyResponse:
     def __init__(self, content):
