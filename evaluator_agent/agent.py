@@ -269,16 +269,13 @@ print(json.dumps(final_output, default=custom_json_serializer))
                 logger.debug(f"Pytest stderr:\n{stderr_str}")
 
             passed = failed = 0
-            match = re.search(r"=+\s*(.*)\s*in\s*([0-9\.]+)s", stdout_str)
-            if match:
-                summary = match.group(1)
-                for part in summary.split(','):
-                    part = part.strip()
-                    if part.endswith('passed'):
-                        passed = int(part.split()[0])
-                    elif part.endswith('failed'):
-                        failed = int(part.split()[0])
-            else:
+            match_pass = re.search(r"(\d+)\s+passed", stdout_str)
+            if match_pass:
+                passed = int(match_pass.group(1))
+            match_fail = re.search(r"(\d+)\s+failed", stdout_str)
+            if match_fail:
+                failed = int(match_fail.group(1))
+            if not match_pass and not match_fail:
                 logger.warning("Could not parse pytest summary")
 
             results = {"passed": passed, "failed": failed, "runtime_ms": runtime}

@@ -18,8 +18,17 @@ class Program:
 
 @dataclass
 class TestSuite:
-    """Represents a collection of pytest test files."""
+    """Container for test suite information used across agents."""
+    # Mapping of filename to test contents when interacting with pytest
     files: Dict[str, str] = field(default_factory=dict)
+    # Optional human readable explanation of the tests
+    explanation: str = ""
+    # List of structured test case dictionaries returned by the test generator
+    cases: List[Dict[str, Any]] = field(default_factory=list)
+    # Raw text returned from the LLM when generating tests
+    raw: Optional[str] = None
+    # Convenience attribute for simple string based test code
+    tests_code: str = ""
 
 @dataclass
 class TaskDefinition:
@@ -38,13 +47,6 @@ class TaskDefinition:
 class TestCase:
     input: Any
     output: Any
-
-
-@dataclass
-class TestSuite:
-    explanation: str
-    cases: List[Dict[str, Any]] = field(default_factory=list)
-    raw: Optional[str] = None
 
 
 class BaseAgent(ABC):
