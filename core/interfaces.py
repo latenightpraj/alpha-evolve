@@ -19,6 +19,8 @@ class Program:
 @dataclass
 class TestSuite:
     """Container for test suite information used across agents."""
+    # Prevent pytest from mistakenly collecting this dataclass as a test case
+    __test__ = False
     # Mapping of filename to test contents when interacting with pytest
     files: Dict[str, str] = field(default_factory=dict)
     # Optional human readable explanation of the tests
