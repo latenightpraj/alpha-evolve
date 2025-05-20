@@ -17,14 +17,14 @@ This explains the tests.""")
 class TestTestGeneratorAgent(unittest.IsolatedAsyncioTestCase):
     async def test_generate_tests_returns_suite(self):
         agent = TestGeneratorAgent()
-        # Patch acompletion within agent module
-        import test_generator.agent as tg_module
-        original = tg_module.acompletion
-        tg_module.acompletion = dummy_acompletion
+        # Patch acompletion used by CodeGeneratorAgent
+        import code_generator.agent as cg_module
+        original = cg_module.acompletion
+        cg_module.acompletion = dummy_acompletion
         try:
             suite = await agent.generate_tests("brief")
         finally:
-            tg_module.acompletion = original
+            cg_module.acompletion = original
 
         self.assertIsInstance(suite, TestSuite)
         self.assertEqual(suite.tests_code.strip(), "assert True")

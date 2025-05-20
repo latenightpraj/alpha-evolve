@@ -1,5 +1,6 @@
 import logging
 import json
+import re
 from typing import Optional, Dict, Any
 
 from core.interfaces import TestGeneratorInterface, TestSuite, BaseAgent
@@ -14,6 +15,10 @@ class TestGeneratorAgent(TestGeneratorInterface, BaseAgent):
         super().__init__(config)
         self.code_generator = CodeGeneratorAgent()
         logger.info("TestGeneratorAgent initialized")
+
+    async def execute(self, brief: str) -> TestSuite:
+        """Concrete implementation of BaseAgent.execute."""
+        return await self.generate_tests(brief)
 
     async def generate_tests(self, brief: str) -> TestSuite:
         """Generate a suite of tests from the provided brief."""
@@ -30,18 +35,24 @@ class TestGeneratorAgent(TestGeneratorInterface, BaseAgent):
 
         logger.debug("Sending prompt to CodeGeneratorAgent")
         generated = await self.code_generator.generate_code(prompt, output_format="code")
-        logger.debug("Raw test generation output:\n%s", generated)
+
+        logger.debug(f"Raw test generation output:\n{generated}")
+        tests_code = ""
 
         try:
             data = json.loads(generated)
             explanation = data.get("explanation", "")
             cases = data.get("cases", [])
+            tests_code = data.get("tests_code", "")
         except Exception as e:
             logger.error("Failed to parse generated tests as JSON: %s", e)
             explanation = generated
             cases = []
 
-        suite = TestSuite(explanation=explanation, cases=cases, raw=generated)
+            code_match = re.search(r"```(?:python)?\n(.*?)```", generated, re.DOTALL)
+            if code_match:
+                tests_code = code_match.group(1).strip()
+        suite = TestSuite(explanation=explanation, cases=cases, raw=generated, tests_code=tests_code)
         logger.info("Test suite generated with %d cases", len(cases))
         return suite
 
