@@ -203,6 +203,7 @@ This loop runs for `settings.GENERATIONS`:
     *   Creates a temporary Python script that includes the program's code and a test harness.
     *   The test harness loads the `input_output_examples` from the `TaskDefinition` and executes the target function against each input.
     *   Runs this script in an isolated subprocess with a specified timeout (`settings.EVALUATION_TIMEOUT_SECONDS`).
+    *   Optionally enforces a memory budget when `TaskDefinition.max_memory_mb` is provided.
     *   Captures stdout, stderr, and execution time for each test case.
     *   Handles `Infinity` and `NaN` in JSON output/input for test cases.
 *   `_assess_correctness()`: Compares the actual outputs produced by the executed code with the expected outputs from the `TaskDefinition`. Calculates correctness score.
