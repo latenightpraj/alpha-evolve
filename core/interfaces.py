@@ -23,7 +23,13 @@ class TaskDefinition:
     input_output_examples: Optional[List[Dict[str, Any]]] = None                                                    
     evaluation_criteria: Optional[Dict[str, Any]] = None                                                            
     initial_code_prompt: Optional[str] = "Provide an initial Python solution for the following problem:"
-    allowed_imports: Optional[List[str]] = None                                  
+    allowed_imports: Optional[List[str]] = None
+
+
+@dataclass
+class TestSuite:
+    tests_code: str
+    explanation: str
 
 class BaseAgent(ABC):
     """Base class for all agents."""
@@ -57,6 +63,11 @@ class PromptDesignerInterface(BaseAgent):
 class CodeGeneratorInterface(BaseAgent):
     @abstractmethod
     async def generate_code(self, prompt: str, model_name: Optional[str] = None, temperature: Optional[float] = 0.7, output_format: str = "code") -> str:
+        pass
+
+class TestGeneratorInterface(BaseAgent):
+    @abstractmethod
+    async def generate_tests(self, brief: str) -> TestSuite:
         pass
 
 class EvaluatorAgentInterface(BaseAgent):
