@@ -17,6 +17,7 @@ python-dotenv>=1.0.0
 
 # Evaluation & Sandboxing
 # pytest
+pytest
 # hypothesis
 # e2b-sdk  # For E2B sandbox
 # docker

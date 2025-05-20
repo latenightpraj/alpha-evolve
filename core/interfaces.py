@@ -15,12 +15,20 @@ class Program:
     status: str = "unevaluated"
     created_at: float = field(default_factory=lambda: time.time())  # Track program age
 
+
+@dataclass
+class TestSuite:
+    """Represents a collection of pytest test files."""
+    files: Dict[str, str] = field(default_factory=dict)
+
 @dataclass
 class TaskDefinition:
     id: str
     description: str                                              
     function_name_to_evolve: Optional[str] = None                                                      
-    input_output_examples: Optional[List[Dict[str, Any]]] = None                                                    
+    input_output_examples: Optional[List[Dict[str, Any]]] = None
+
+    test_suite: Optional[TestSuite] = None
     evaluation_criteria: Optional[Dict[str, Any]] = None                                                            
     initial_code_prompt: Optional[str] = "Provide an initial Python solution for the following problem:"
     allowed_imports: Optional[List[str]] = None                                  
