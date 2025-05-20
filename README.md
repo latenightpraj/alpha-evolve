@@ -159,6 +159,7 @@ OpenAlpha_Evolve employs a modular, agent-based architecture to orchestrate an e
     ```
     Gradio will display a local URL (e.g., http://127.0.0.1:7860) and a public share link if enabled. Open this in your browser to define custom tasks and run the evolution process interactively.
 
+
 ## ✅ Running Tests
 
 After installing dependencies you can run the automated test suite with:
@@ -168,6 +169,29 @@ pytest
 ```
 
 This will execute all tests under the `tests/` directory.
+
+## Prototype-on-Demand Workflow
+
+OpenAlpha_Evolve also supports a prototype-on-demand mode. In this flow you:
+
+1. **Supply a natural-language brief.** The brief describes the functionality you want. A dedicated `TestGeneratorAgent` converts this description into unit tests.
+2. **Review the generated tests.** You approve, reject or edit each test to ensure it matches your expectations.
+3. **Automatic code evolution.** Once the tests are approved, the normal evolutionary loop runs until all tests pass.
+
+### CLI Examples
+
+Generate a prototype directly from the command line:
+
+```bash
+python prototype_on_demand.py --brief "return the nth Fibonacci number"
+```
+
+Read the brief from a file and specify an output directory:
+
+```bash
+python prototype_on_demand.py --brief-file brief.txt --output-dir ./runs/fib
+```
+
 
 ---
 

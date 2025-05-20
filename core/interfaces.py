@@ -15,15 +15,39 @@ class Program:
     status: str = "unevaluated"
     created_at: float = field(default_factory=lambda: time.time())  # Track program age
 
+
+@dataclass
+class TestSuite:
+    """Container for test suite information used across agents."""
+    # Mapping of filename to test contents when interacting with pytest
+    files: Dict[str, str] = field(default_factory=dict)
+    # Optional human readable explanation of the tests
+    explanation: str = ""
+    # List of structured test case dictionaries returned by the test generator
+    cases: List[Dict[str, Any]] = field(default_factory=list)
+    # Raw text returned from the LLM when generating tests
+    raw: Optional[str] = None
+    # Convenience attribute for simple string based test code
+    tests_code: str = ""
+
 @dataclass
 class TaskDefinition:
     id: str
     description: str                                              
     function_name_to_evolve: Optional[str] = None                                                      
-    input_output_examples: Optional[List[Dict[str, Any]]] = None                                                    
+    input_output_examples: Optional[List[Dict[str, Any]]] = None
+
+    test_suite: Optional[TestSuite] = None
     evaluation_criteria: Optional[Dict[str, Any]] = None                                                            
     initial_code_prompt: Optional[str] = "Provide an initial Python solution for the following problem:"
-    allowed_imports: Optional[List[str]] = None                                  
+    allowed_imports: Optional[List[str]] = None
+
+
+@dataclass
+class TestCase:
+    input: Any
+    output: Any
+
 
 class BaseAgent(ABC):
     """Base class for all agents."""
@@ -57,6 +81,11 @@ class PromptDesignerInterface(BaseAgent):
 class CodeGeneratorInterface(BaseAgent):
     @abstractmethod
     async def generate_code(self, prompt: str, model_name: Optional[str] = None, temperature: Optional[float] = 0.7, output_format: str = "code") -> str:
+        pass
+
+class TestGeneratorInterface(BaseAgent):
+    @abstractmethod
+    async def generate_tests(self, brief: str) -> TestSuite:
         pass
 
 class EvaluatorAgentInterface(BaseAgent):

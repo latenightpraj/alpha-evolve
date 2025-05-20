@@ -10,9 +10,11 @@ import json
 import asyncio
 import sys
 import math
+import re
+import shutil
 from typing import Optional, Dict, Any, Tuple, Union, List
 
-from core.interfaces import EvaluatorAgentInterface, Program, TaskDefinition, BaseAgent
+from core.interfaces import EvaluatorAgentInterface, Program, TaskDefinition, BaseAgent, TestSuite
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -38,8 +40,8 @@ class EvaluatorAgent(EvaluatorAgentInterface, BaseAgent):
         return errors
 
     async def _execute_code_safely(
-        self, 
-        code: str, 
+        self,
+        code: str,
         task_for_examples: TaskDefinition,
         timeout_seconds: Optional[int] = None
     ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
@@ -233,40 +235,103 @@ print(json.dumps(final_output, default=custom_json_serializer))
             except Exception as e_cleanup:
                 logger.error(f"Error during cleanup of temp files: {e_cleanup}")
 
-    def _assess_correctness(self, execution_results: Dict[str, Any], expected_outputs: List[Dict[str, Any]]) -> Tuple[float, int, int]:
-        passed_tests = 0
-        total_tests = len(expected_outputs)
-        
-        if not execution_results or "test_outputs" not in execution_results:
-            logger.warning("Execution results are missing 'test_outputs' field.")
-            return 0.0, 0, total_tests
+    def _run_pytest(self, code: str, suite: TestSuite, timeout_seconds: int) -> Tuple[Dict[str, Any], str]:
+        """Run pytest suite on the provided code."""
+        temp_dir = tempfile.mkdtemp()
+        try:
+            candidate_path = os.path.join(temp_dir, "candidate.py")
+            with open(candidate_path, "w") as f:
+                f.write(code)
 
-        actual_test_outputs = execution_results["test_outputs"]
+            for filename, contents in suite.files.items():
+                file_path = os.path.join(temp_dir, filename)
+                with open(file_path, "w") as tf:
+                    tf.write(contents)
 
-        if len(actual_test_outputs) != total_tests:
-            logger.warning(f"Mismatch in number of test outputs ({len(actual_test_outputs)}) and expected outputs ({total_tests}). Some tests might have crashed before producing output.")
-        
-        for i, expected in enumerate(expected_outputs):
-            actual_output_detail = next((res for res in actual_test_outputs if res.get("test_case_id") == i), None)
+            cmd = ["pytest", "-q"]
+            logger.debug(f"Running pytest: {' '.join(cmd)} in {temp_dir}")
 
-            if actual_output_detail and actual_output_detail.get("status") == "success":
-                actual = actual_output_detail.get("output")
-                expected_val = expected["output"]
-                
-                if self._compare_outputs(actual, expected_val):
-                    passed_tests += 1
+            start_time = time.monotonic()
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=temp_dir)
+            try:
+                stdout, stderr = proc.communicate(timeout=timeout_seconds)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                stdout, stderr = proc.communicate()
+                logger.warning(f"Pytest timed out after {timeout_seconds}s")
+                return {}, f"Timeout after {timeout_seconds}s"
+
+            runtime = (time.monotonic() - start_time) * 1000
+            stdout_str = stdout.decode("utf-8", errors="replace")
+            stderr_str = stderr.decode("utf-8", errors="replace")
+            logger.debug(f"Pytest stdout:\n{stdout_str}")
+            if stderr_str:
+                logger.debug(f"Pytest stderr:\n{stderr_str}")
+
+            passed = failed = 0
+            match_pass = re.search(r"(\d+)\s+passed", stdout_str)
+            if match_pass:
+                passed = int(match_pass.group(1))
+            match_fail = re.search(r"(\d+)\s+failed", stdout_str)
+            if match_fail:
+                failed = int(match_fail.group(1))
+            if not match_pass and not match_fail:
+                logger.warning("Could not parse pytest summary")
+
+            results = {"passed": passed, "failed": failed, "runtime_ms": runtime}
+            return results, stderr_str if proc.returncode != 0 else None
+        except Exception as e:
+            logger.error("Error running pytest", exc_info=True)
+            return {}, str(e)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def _assess_correctness(self, execution_results: Dict[str, Any], expected_outputs: Optional[List[Dict[str, Any]]] = None) -> Tuple[float, int, int]:
+        """Assess correctness either from I/O examples or pytest results."""
+        if expected_outputs is not None:
+            passed_tests = 0
+            total_tests = len(expected_outputs)
+
+            if not execution_results or "test_outputs" not in execution_results:
+                logger.warning("Execution results are missing 'test_outputs' field.")
+                return 0.0, 0, total_tests
+
+            actual_test_outputs = execution_results["test_outputs"]
+
+            if len(actual_test_outputs) != total_tests:
+                logger.warning(
+                    f"Mismatch in number of test outputs ({len(actual_test_outputs)}) and expected outputs ({total_tests}). Some tests might have crashed before producing output."
+                )
+
+            for i, expected in enumerate(expected_outputs):
+                actual_output_detail = next((res for res in actual_test_outputs if res.get("test_case_id") == i), None)
+
+                if actual_output_detail and actual_output_detail.get("status") == "success":
+                    actual = actual_output_detail.get("output")
+                    expected_val = expected["output"]
+
+                    if self._compare_outputs(actual, expected_val):
+                        passed_tests += 1
+                    else:
+                        logger.debug(f"Test case {i} failed: Expected '{expected_val}', Got '{actual}'")
+                elif actual_output_detail:
+                    logger.debug(f"Test case {i} had error: {actual_output_detail.get('error')}")
                 else:
-                    logger.debug(f"Test case {i} failed: Expected '{expected_val}', Got '{actual}'")
-            elif actual_output_detail:
-                logger.debug(f"Test case {i} had error: {actual_output_detail.get('error')}")
-            else:
-                logger.debug(f"Test case {i}: No output found in results.")
+                    logger.debug(f"Test case {i}: No output found in results.")
 
-        if total_tests == 0:
-            return 1.0, 0, 0
-        
-        correctness = passed_tests / total_tests
-        return correctness, passed_tests, total_tests
+            if total_tests == 0:
+                return 1.0, 0, 0
+
+            correctness = passed_tests / total_tests
+            return correctness, passed_tests, total_tests
+        else:
+            passed = execution_results.get("passed", 0)
+            failed = execution_results.get("failed", 0)
+            total = passed + failed
+            if total == 0:
+                return 0.0, 0, 0
+            correctness = passed / total
+            return correctness, passed, total
 
     async def evaluate_program(self, program: Program, task: TaskDefinition) -> Program:
         logger.info(f"Evaluating program: {program.id} for task: {task.id}")
@@ -283,6 +348,20 @@ print(json.dumps(final_output, default=custom_json_serializer))
             return program
 
         logger.debug(f"Syntax check passed for program {program.id}.")
+
+        if task.test_suite:
+            logger.debug(f"Running pytest suite for program {program.id}.")
+            results, error = self._run_pytest(program.code, task.test_suite, self.evaluation_timeout_seconds)
+            if error:
+                logger.warning(f"Pytest error for program {program.id}: {error}")
+                program.errors.append(f"Pytest Error: {error}")
+            correctness, passed_tests, total_tests = self._assess_correctness(results)
+            program.fitness_scores["correctness"] = correctness
+            program.fitness_scores["passed_tests"] = float(passed_tests)
+            program.fitness_scores["total_tests"] = float(total_tests)
+            program.fitness_scores["runtime_ms"] = results.get("runtime_ms", float('inf'))
+            program.status = "evaluated" if correctness == 1.0 and not error else "failed_evaluation"
+            return program
 
         if task.input_output_examples:
             logger.debug(f"Executing program {program.id} against {len(task.input_output_examples)} test cases.")
