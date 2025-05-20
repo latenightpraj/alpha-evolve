@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 class TestGeneratorAgent(TestGeneratorInterface, BaseAgent):
     """Advanced agent that converts a natural-language brief into unit tests."""
+    # Prevent pytest from treating this agent as a test case
+    __test__ = False
 
     def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
         super().__init__(config)
@@ -56,6 +58,3 @@ class TestGeneratorAgent(TestGeneratorInterface, BaseAgent):
         logger.info("Test suite generated with %d cases", len(cases))
         return suite
 
-    async def execute(self, brief: str) -> TestSuite:
-        """Entry point for BaseAgent: delegates to :meth:`generate_tests`."""
-        return await self.generate_tests(brief)
