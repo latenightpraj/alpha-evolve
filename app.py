@@ -363,6 +363,25 @@ def get_code(solution_index):
     except Exception as e:
         return f"Error retrieving solution: {str(e)}"
 
+
+async def prepare_download(solution_index):
+    """Write the selected solution to a file for download."""
+    try:
+        idx = int(solution_index)
+        if current_results and 0 <= idx < len(current_results):
+            code = current_results[idx].code
+            os.makedirs("downloads", exist_ok=True)
+            file_path = os.path.join("downloads", f"solution_{idx}_{int(time.time())}.py")
+            with open(file_path, "w") as f:
+                f.write(code)
+            logger.info("Prepared download file: %s", file_path)
+            return file_path
+        logger.error("No solution available at index %s", solution_index)
+        return None
+    except Exception as e:
+        logger.error("Error preparing download: %s", e)
+        return None
+
                                    
 FIB_EXAMPLES = '''[
     {"input": [0], "output": 0},
@@ -427,6 +446,10 @@ with gr.Blocks(title="OpenAlpha_Evolve") as demo:
                 with gr.Column(scale=1):
                     with gr.Tab("Results"):
                         results_text = gr.Markdown("Evolution results will appear here...")
+                        with gr.Row():
+                            download_index = gr.Number(label="Solution Index", value=0, precision=0)
+                            prepare_download_btn = gr.Button("Prepare Download")
+                        download_file = gr.File(label="Download Solution", interactive=False)
 
             example_btn.click(
                 set_fib_example,
@@ -450,6 +473,12 @@ with gr.Blocks(title="OpenAlpha_Evolve") as demo:
                 outputs=results_text,
             )
 
+            prepare_download_btn.click(
+                prepare_download,
+                inputs=download_index,
+                outputs=download_file,
+            )
+
         with gr.Tab("Prototype on Demand"):
             brief = gr.Textbox(label="Task Brief", lines=3)
             function_name_proto = gr.Textbox(label="Function Name to Evolve", value="solve")
@@ -471,6 +500,10 @@ with gr.Blocks(title="OpenAlpha_Evolve") as demo:
                 edit_btn = gr.Button("Edit")
                 cancel_btn = gr.Button("Cancel")
             proto_results = gr.Markdown()
+            with gr.Row():
+                download_index_proto = gr.Number(label="Solution Index", value=0, precision=0)
+                prepare_download_btn_proto = gr.Button("Prepare Download")
+            download_file_proto = gr.File(label="Download Solution", interactive=False)
 
             generate_btn.click(generate_tests, inputs=brief, outputs=[tests_code_box, explanation_box, suite_state])
             regenerate_btn.click(generate_tests, inputs=brief, outputs=[tests_code_box, explanation_box, suite_state])
@@ -517,6 +550,12 @@ with gr.Blocks(title="OpenAlpha_Evolve") as demo:
                     suite_state,
                 ],
                 outputs=proto_results,
+            )
+
+            prepare_download_btn_proto.click(
+                prepare_download,
+                inputs=download_index_proto,
+                outputs=download_file_proto,
             )
 
             def cancel():
