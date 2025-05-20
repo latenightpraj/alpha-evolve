@@ -35,9 +35,17 @@ class TaskDefinition:
 
 
 @dataclass
+class TestCase:
+    input: Any
+    output: Any
+
+
+@dataclass
 class TestSuite:
-    tests_code: str
     explanation: str
+    cases: List[Dict[str, Any]] = field(default_factory=list)
+    raw: Optional[str] = None
+
 
 class BaseAgent(ABC):
     """Base class for all agents."""

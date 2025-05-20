@@ -159,6 +159,13 @@ OpenAlpha_Evolve employs a modular, agent-based architecture to orchestrate an e
     ```
     Gradio will display a local URL (e.g., http://127.0.0.1:7860) and a public share link if enabled. Open this in your browser to define custom tasks and run the evolution process interactively.
 
+9.  **Prototype On-Demand**
+    Quickly draft tests and evolve a solution from a short description:
+    ```bash
+    python prototype_on_demand.py "your task description"
+    ```
+    If no description is provided, the script will prompt for one and walk you through editing the generated tests before starting the evolutionary loop.
+
 ---
 
 ## 💡 Defining Your Own Algorithmic Quests!
