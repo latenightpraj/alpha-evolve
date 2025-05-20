@@ -15,6 +15,12 @@ class Program:
     status: str = "unevaluated"
     created_at: float = field(default_factory=lambda: time.time())  # Track program age
 
+
+@dataclass
+class TestSuite:
+    """Collection of test cases for a task."""
+    tests: List[Dict[str, Any]] = field(default_factory=list)
+
 @dataclass
 class TaskDefinition:
     id: str
@@ -23,7 +29,8 @@ class TaskDefinition:
     input_output_examples: Optional[List[Dict[str, Any]]] = None                                                    
     evaluation_criteria: Optional[Dict[str, Any]] = None                                                            
     initial_code_prompt: Optional[str] = "Provide an initial Python solution for the following problem:"
-    allowed_imports: Optional[List[str]] = None                                  
+    allowed_imports: Optional[List[str]] = None
+    test_suite: TestSuite | None = None
 
 class BaseAgent(ABC):
     """Base class for all agents."""
