@@ -43,7 +43,8 @@ class EvaluatorAgent(EvaluatorAgentInterface, BaseAgent):
         self,
         code: str,
         task_for_examples: TaskDefinition,
-        timeout_seconds: Optional[int] = None
+        timeout_seconds: Optional[int] = None,
+        max_memory_mb: Optional[int] = None
     ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         timeout = timeout_seconds if timeout_seconds is not None else self.evaluation_timeout_seconds
         results = {"test_outputs": [], "average_runtime_ms": 0.0}
@@ -166,16 +167,30 @@ print(json.dumps(final_output, default=custom_json_serializer))
             f.write(test_harness_code)
 
         cmd = [sys.executable, temp_file_path]
-        
+
         proc = None
         try:
             logger.debug(f"Executing code: {' '.join(cmd)} in {temp_dir}")
             start_time = time.monotonic()
+            preexec_fn = None
+            if max_memory_mb is not None:
+                limit_bytes = max_memory_mb * 1024 * 1024
+
+                def set_mem_limit():
+                    try:
+                        import resource
+                        resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
+                    except Exception as e:
+                        logger.error(f"Failed to set memory limit: {e}")
+
+                preexec_fn = set_mem_limit
+
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=temp_dir
+                cwd=temp_dir,
+                preexec_fn=preexec_fn,
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
             duration = time.monotonic() - start_time
@@ -365,7 +380,11 @@ print(json.dumps(final_output, default=custom_json_serializer))
 
         if task.input_output_examples:
             logger.debug(f"Executing program {program.id} against {len(task.input_output_examples)} test cases.")
-            execution_results, execution_error = await self._execute_code_safely(program.code, task_for_examples=task)
+            execution_results, execution_error = await self._execute_code_safely(
+                program.code,
+                task_for_examples=task,
+                max_memory_mb=task.max_memory_mb
+            )
             
             if execution_error:
                 logger.warning(f"Execution error for program {program.id}: {execution_error}")

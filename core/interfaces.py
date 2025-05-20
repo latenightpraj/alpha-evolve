@@ -43,6 +43,8 @@ class TaskDefinition:
     evaluation_criteria: Optional[Dict[str, Any]] = None                                                            
     initial_code_prompt: Optional[str] = "Provide an initial Python solution for the following problem:"
     allowed_imports: Optional[List[str]] = None
+    # Optional memory limit (in megabytes) for code execution
+    max_memory_mb: Optional[int] = None
 
 
 @dataclass

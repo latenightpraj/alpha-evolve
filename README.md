@@ -208,6 +208,7 @@ Want to challenge OpenAlpha_Evolve with a new problem? It's easy:
         *   Inputs should be provided as a list if the function takes multiple positional arguments, or as a single value if it takes one.
         *   Use `float('inf')` or `float('-inf')` directly in your Python code defining these examples if needed by your problem (the evaluation harness handles JSON serialization/deserialization of these).
     *   `allowed_imports`: Specify a list of Python standard libraries that the generated code is allowed to import (e.g., `["heapq", "math", "sys"]`). This helps guide the LLM and can be important for the execution sandbox.
+    *   (Optional) `max_memory_mb`: Limit the memory usage (in megabytes) for test execution. Code exceeding this budget will be terminated.
     *   (Optional) `evaluation_criteria`: Define how success is measured (currently primarily driven by correctness based on test cases).
     *   (Optional) `initial_code_prompt`: Override the default initial prompt if you need more specific instructions for the first code generation attempt.
 
