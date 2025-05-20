@@ -9,11 +9,7 @@ class DummyResponse:
         self.choices = [SimpleNamespace(message=SimpleNamespace(content=content))]
 
 async def dummy_acompletion(*args, **kwargs):
-    return DummyResponse("""Some intro text
-```python
-assert True
-```
-This explains the tests.""")
+    return DummyResponse('{"explanation": "This explains the tests.", "cases": [], "tests_code": "assert True"}')
 
 class TestTestGeneratorAgent(unittest.IsolatedAsyncioTestCase):
     async def test_generate_tests_returns_suite(self):

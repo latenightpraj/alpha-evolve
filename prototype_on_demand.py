@@ -53,6 +53,9 @@ async def generate_and_confirm_tests(agent: TestGeneratorAgent, brief: str):
         suite = await agent.generate_tests(brief)
         print("\n--- Test Explanation ---")
         print(suite.explanation)
+        if suite.tests_code:
+            print("\n--- Pytest Code ---")
+            print(suite.tests_code)
         print("\n--- Proposed Tests (JSON) ---")
         print(json.dumps({"explanation": suite.explanation, "cases": suite.cases}, indent=2))
         choice = input("[A]ccept / [R]egenerate / [E]dit / [Q]uit > ").strip().lower()
@@ -88,6 +91,9 @@ async def main():
     if not suite:
         return
 
+    if suite.tests_code:
+        suite.files = {"test_generated.py": suite.tests_code}
+
     func_name = args.func_name or input("Function name to evolve [solve]: ").strip() or "solve"
     imports_text = args.imports or input("Allowed standard library imports (comma separated) [none]: ")
     allowed_imports = [imp.strip() for imp in imports_text.split(",") if imp.strip()] if imports_text else []
@@ -99,6 +105,7 @@ async def main():
         function_name_to_evolve=func_name,
         input_output_examples=suite.cases,
         allowed_imports=allowed_imports,
+        test_suite=suite,
     )
 
     logger.info("Starting TaskManagerAgent for task %s", task_id)
