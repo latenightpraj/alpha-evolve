@@ -1,7 +1,11 @@
 import os
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional dependency
+    load_dotenv = None
 
-load_dotenv()
+if load_dotenv:
+    load_dotenv()
 
 # LLM Configuration
 FLASH_API_KEY = os.getenv("FLASH_API_KEY")
