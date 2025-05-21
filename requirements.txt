@@ -1,39 +1,35 @@
 # Core Libraries
-litellm
+litellm[gemini]
 python-dotenv>=1.0.0
 
-# LLM Models & Frameworks
-# transformers
-# torch
-# accelerate
-# bitsandbytes # For quantization if needed
-# sentencepiece
-
-# Evolutionary Algorithms / RL
-# deap
-# pygad
-# ray[rllib]
-# stable-baselines3
-
 # Evaluation & Sandboxing
-# pytest
-pytest
-# hypothesis
-# e2b-sdk  # For E2B sandbox
-# docker
+pytest>=7.4.0
 
-# Data Storage
-# psycopg2-binary  # For PostgreSQL
-# pymongo  # For MongoDB
-# dvc
-
-# Utilities
-# jinja2
-
-# API/Web (Optional, if exposing functionality)
-# fastapi
-# uvicorn
-
-asyncio>=3.4.3
-uuid>=1.30
+# Web UI
 gradio>=4.0.0
+
+# -------------------------------------------------------------------
+# Optional extras (uncomment to use – pin as needed)
+# transformers>=4.35.0
+# torch>=2.0.1
+# accelerate>=0.19.0
+# bitsandbytes>=0.39.0
+# sentencepiece>=0.1.99
+
+# deap>=2.0.0
+# pygad>=2.17.0
+# ray[rllib]>=2.13.0
+# stable-baselines3>=2.3.0
+
+# hypothesis>=6.73.2
+# e2b-sdk>=0.1.2
+# docker>=6.1.0
+
+# psycopg2-binary>=2.9.7
+# pymongo>=4.4.0
+# dvc>=3.0.0
+
+# jinja2>=3.1.2
+
+# fastapi>=0.95.2
+# uvicorn>=0.22.0

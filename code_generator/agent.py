@@ -133,14 +133,20 @@ Make sure your diff can be applied correctly!
         logger.debug(f"Attempting to clean raw LLM output. Input length: {len(raw_code)}")
         code = raw_code.strip()
         
-        if code.startswith("```python") and code.endswith("```"):
-            cleaned = code[len("```python"): -len("```")].strip()
-            logger.debug("Cleaned Python markdown fences.")
-            return cleaned
-        elif code.startswith("```") and code.endswith("```"):
-            cleaned = code[len("```"): -len("```")].strip()
-            logger.debug("Cleaned generic markdown fences.")
-            return cleaned
+        # Extract code from markdown code blocks with language identifiers
+        if code.startswith("```") and code.endswith("```"):
+            # Find the first newline, which separates the opening fence (possibly with language) from content
+            first_newline_pos = code.find('\n')
+            if first_newline_pos > 0:
+                # Remove opening fence (with language identifier if present) and closing fence
+                cleaned = code[first_newline_pos + 1:-3].strip()
+                logger.debug("Cleaned markdown fences and language identifier.")
+                return cleaned
+            else:
+                # Fallback if there's no newline (unlikely)
+                cleaned = code[3:-3].strip()
+                logger.debug("Cleaned simple markdown fences.")
+                return cleaned
             
         logger.debug("No markdown fences found or standard cleaning applied to the stripped code.")
         return code
