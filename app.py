@@ -245,14 +245,18 @@ async def run_evolution(
         return f"Error during evolution: {str(e)}\n\n{traceback.format_exc()}"
 
 
-async def generate_tests(brief):
+async def generate_tests(brief, suggest_imports=False):
     """Generate a pytest suite from a natural language brief."""
-    logger.info("Generating tests for brief: %s", brief)
+    logger.info(f"Generating tests for brief: {brief}, with import suggestions: {suggest_imports}")
     agent = TestGeneratorAgent()
-    suite = await agent.generate_tests(brief)
+    suite = await agent.generate_tests(brief, suggest_imports)
     logger.info("Generated tests: %s", suite.tests_code[:100] if suite.tests_code else suite.cases)
     code = suite.tests_code or json.dumps({"cases": suite.cases}, indent=2)
-    return code, suite.explanation, suite
+    
+    # If we have suggested imports, update the imports field
+    imports = suite.suggested_imports if suggest_imports and suite.suggested_imports else ""
+    
+    return code, suite.explanation, suite, imports
 
 
 async def run_task_from_suite(
@@ -453,6 +457,7 @@ with gr.Blocks(title="OpenAlpha_Evolve") as demo:
         with gr.Tab("Prototype on Demand"):
             brief = gr.Textbox(label="Task Brief", lines=3)
             function_name_proto = gr.Textbox(label="Function Name to Evolve", value="solve")
+            suggest_imports_toggle = gr.Checkbox(label="Let model suggest imports", value=True)
             allowed_imports_proto = gr.Textbox(label="Allowed Imports (comma-separated)", value="")
             generate_btn = gr.Button("Generate Tests")
             explanation_box = gr.Textbox(label="Test Explanation", lines=4, interactive=True)
@@ -472,13 +477,33 @@ with gr.Blocks(title="OpenAlpha_Evolve") as demo:
                 cancel_btn = gr.Button("Cancel")
             proto_results = gr.Markdown()
 
-            generate_btn.click(generate_tests, inputs=brief, outputs=[tests_code_box, explanation_box, suite_state])
-            regenerate_btn.click(generate_tests, inputs=brief, outputs=[tests_code_box, explanation_box, suite_state])
+            generate_btn.click(
+                generate_tests, 
+                inputs=[brief, suggest_imports_toggle], 
+                outputs=[tests_code_box, explanation_box, suite_state, allowed_imports_proto]
+            )
+            regenerate_btn.click(
+                generate_tests, 
+                inputs=[brief, suggest_imports_toggle], 
+                outputs=[tests_code_box, explanation_box, suite_state, allowed_imports_proto]
+            )
 
             def enable_edit():
                 return gr.update(interactive=True), gr.update(interactive=True)
 
             edit_btn.click(enable_edit, outputs=[tests_code_box, explanation_box])
+
+            def toggle_imports_visibility(suggest):
+                if suggest:
+                    return gr.update(visible=True, value="")
+                else:
+                    return gr.update(visible=True)
+                
+            suggest_imports_toggle.change(
+                toggle_imports_visibility,
+                inputs=[suggest_imports_toggle],
+                outputs=[allowed_imports_proto]
+            )
 
             async def approve_wrapper(br, func_name, imports, pop, gens, islands, mig_freq, mig_rate, expl, code, suite):
                 logger.info("User decision: approve")

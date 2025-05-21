@@ -31,6 +31,8 @@ class TestSuite:
     raw: Optional[str] = None
     # Convenience attribute for simple string based test code
     tests_code: str = ""
+    # Suggested imports for implementing the solution
+    suggested_imports: str = ""
 
 @dataclass
 class TaskDefinition:
